@@ -258,7 +258,7 @@ export const apparatus: { group: string; items: string[] }[] = [
   },
   {
     group: "Interface",
-    items: ["HTML", "CSS", "Tailwind CSS"],
+    items: ["React", "Next.js", "HTML", "CSS", "Tailwind CSS"],
   },
   {
     group: "Systems",
