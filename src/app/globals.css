@@ -1,0 +1,1088 @@
+@import "tailwindcss";
+
+/* ═══════════════════════════════════════════════════════════════════ *
+ *  A VOLUME ON A DESK
+ *  One atmosphere only: lamplight on a dark table, aged laid paper,
+ *  cloth boards, gilt stamping. Nothing here is a photograph.
+ * ═══════════════════════════════════════════════════════════════════ */
+:root {
+  /* the desk it rests on */
+  --desk: #1c1611;
+  --desk-deep: #0f0b08;
+  --lamp: rgb(255 226 168 / 0.15);
+
+  /* the paper, foxed and sunned at the edges */
+  --leaf: #e6dabb;
+  --leaf-warm: #dbcaa4;
+  --leaf-shade: rgb(64 42 14 / 0.26);
+
+  /* the ink */
+  --ink: #2a2018;
+  --ink-soft: #55463a;
+  --ink-faint: #7a6a57;
+  --rubric: #9c3418;
+
+  /* the boards */
+  --board: #4b1f18;
+  --board-deep: #2a100b;
+  --gilt: #c9a227;
+
+  --rule: rgb(42 32 24 / 0.24);
+  --rule-strong: rgb(42 32 24 / 0.42);
+}
+
+@theme inline {
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-ink-faint: var(--ink-faint);
+  --color-rubric: var(--rubric);
+  --color-gilt: var(--gilt);
+  --color-rule: var(--rule);
+  --color-rule-strong: var(--rule-strong);
+
+  --font-serif: var(--font-eb), "EB Garamond", Georgia, "Times New Roman", serif;
+  --font-display: var(--font-fell), var(--font-eb), Georgia, serif;
+}
+/* ─── base ────────────────────────────────────────────────────────── */
+@layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* No scrollbars anywhere. A book does not have one. */
+  * {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  *::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;
+  }
+
+  /* Nothing on a printed page can be selected or dragged off it. */
+  * {
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  a,
+  img,
+  svg {
+    -webkit-user-drag: none;
+  }
+
+  html,
+  body {
+    height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+
+  body {
+    font-family: var(--font-serif);
+    color: var(--ink);
+    background-color: var(--desk);
+    background-image:
+      radial-gradient(
+        ellipse 90% 70% at 50% 42%,
+        var(--lamp),
+        transparent 70%
+      ),
+      radial-gradient(
+        ellipse 120% 100% at 50% 50%,
+        transparent 38%,
+        var(--desk-deep) 100%
+      );
+    font-variant-numeric: oldstyle-nums;
+    font-feature-settings: "kern" 1, "liga" 1, "onum" 1;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection {
+    background-color: var(--rubric);
+    color: var(--leaf);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--gilt);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+/* ─── the stage ───────────────────────────────────────────────────── */
+.stage {
+  display: grid;
+  place-items: center;
+  height: 100svh;
+  width: 100%;
+  perspective: 2800px;
+  perspective-origin: 50% 44%;
+  touch-action: pan-y;
+}
+
+/* The volume is laid flat on the desk and swings up to face the reader:
+   rotateX 90deg to 0, rising from below. It has to carry preserve-3d, or
+   the leaves inside it would be flattened and stop turning. */
+.riser {
+  transform-style: preserve-3d;
+  transform-origin: 50% 100%;
+  animation: rise 1500ms cubic-bezier(0.22, 0.88, 0.24, 1) both;
+}
+
+@keyframes rise {
+  from {
+    transform: translateY(24vh) rotateX(90deg);
+  }
+  to {
+    transform: translateY(0) rotateX(0deg);
+  }
+}
+
+/* ─── the volume ──────────────────────────────────────────────────── */
+.volume {
+  position: relative;
+  transform-style: preserve-3d;
+  width: min(93vw, 1160px);
+  aspect-ratio: 1.52;
+  max-height: 84svh;
+  transition: transform 900ms cubic-bezier(0.42, 0, 0.24, 1);
+}
+
+/* Shut, only the front board shows - so the volume slides half a width
+   left, keeping the visible board dead centre on the desk. */
+.volume.is-shut {
+  transform: translateX(-25%);
+}
+
+/* Shut from the back: every leaf turned, so the boards sit on the left. */
+.volume.is-shut-back {
+  transform: translateX(25%);
+}
+
+/* The shadow the volume casts. On a child - a `filter` on .volume itself
+   would flatten the 3-D context and the leaves would stop turning. */
+.volume::before {
+  content: "";
+  position: absolute;
+  top: 2%;
+  bottom: -1%;
+  left: 0;
+  right: 0;
+  border-radius: 5px;
+  background: rgb(0 0 0 / 0.42);
+  filter: blur(1.5rem);
+  transform: translateZ(-4px);
+  transition:
+    left 900ms cubic-bezier(0.42, 0, 0.24, 1),
+    right 900ms cubic-bezier(0.42, 0, 0.24, 1);
+}
+/* Shut, only one half of the volume is a board - so is its shadow. */
+.volume.is-shut::before {
+  left: 50%;
+  right: 0;
+}
+.volume.is-shut-back::before {
+  left: 0;
+  right: 50%;
+}
+
+/* Whatever lies behind the leaves.
+
+   Once one leaf has been turned, both halves are always covered by a leaf,
+   so this is never actually seen. The single exception is the very first
+   turn: there is no turned leaf yet to cover the left half, so the panel
+   snaps across only AFTER the board has landed. Nothing slides out from
+   behind the opening cover - the reader just sees the desk until the
+   board arrives over it. */
+.block {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  left: 0;
+  border-radius: 3px;
+  background: #0b0805;
+  transition:
+    left 0ms 1000ms,
+    right 0ms 1000ms;
+}
+.volume.is-shut .block {
+  left: 50%;
+  transition-delay: 0ms;
+}
+.volume.is-shut-back .block {
+  right: 50%;
+  transition-delay: 0ms;
+}
+
+/* ─── a leaf ──────────────────────────────────────────────────────── */
+.leaf {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 50%;
+  height: 100%;
+  transform-origin: left center;
+  transform-style: preserve-3d;
+  transition: transform 1000ms cubic-bezier(0.4, 0.02, 0.22, 1);
+}
+
+/* Both faces carry an explicit 3-D transform. Without one, Gecko will
+   not compute a backface at all and the recto shows through mirrored. */
+.face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transform-style: flat;
+}
+.face.recto {
+  transform: rotateY(0deg) translateZ(0.01px);
+}
+.face.verso {
+  transform: rotateY(180deg) translateZ(0.01px);
+}
+
+/* ─── paper ───────────────────────────────────────────────────────── */
+.paper {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 3px;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  container-type: size;
+  container-name: page;
+  background-color: var(--leaf);
+  /* Foxing, damp marks and a sunned edge. Positions come from custom
+     properties so no two leaves in the volume are stained alike. */
+  --fx1: 22%;
+  --fy1: 16%;
+  --fx2: 78%;
+  --fy2: 72%;
+  --fx3: 12%;
+  --fy3: 88%;
+  --fx4: 88%;
+  --fy4: 24%;
+  --fx5: 50%;
+  --fy5: 40%;
+  --burn: 0.3;
+  background-image:
+    radial-gradient(
+      ellipse 34% 24% at var(--fx1) var(--fy1),
+      rgb(146 100 40 / 0.17),
+      transparent 68%
+    ),
+    radial-gradient(
+      ellipse 28% 20% at var(--fx2) var(--fy2),
+      rgb(132 88 34 / 0.15),
+      transparent 66%
+    ),
+    radial-gradient(
+      circle at var(--fx3) var(--fy3),
+      rgb(118 76 28 / 0.2),
+      transparent 15%
+    ),
+    radial-gradient(
+      circle at var(--fx4) var(--fy4),
+      rgb(118 76 28 / 0.16),
+      transparent 11%
+    ),
+    radial-gradient(
+      ellipse 62% 44% at var(--fx5) var(--fy5),
+      rgb(108 68 24 / 0.11),
+      transparent 62%
+    ),
+    radial-gradient(
+      ellipse 120% 120% at 50% 50%,
+      var(--leaf) 34%,
+      var(--leaf-warm) 100%
+    );
+  box-shadow:
+    inset 0 0 2.2rem var(--leaf-shade),
+    inset 0 0 6.5rem rgb(84 58 22 / 0.16),
+    inset 0 0 0.45rem rgb(70 44 14 / calc(var(--burn) * 1)),
+    inset 0 0 0.1rem rgb(52 32 8 / 0.5);
+}
+
+/* the tooth of laid paper */
+.paper::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.07;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* the shadow that falls into the gutter, at the bound edge */
+.paper::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+}
+.face.recto .paper::before {
+  background: linear-gradient(
+    to right,
+    rgb(58 38 12 / 0.34),
+    rgb(58 38 12 / 0.09) 5%,
+    transparent 15%
+  );
+}
+.face.verso .paper::before {
+  background: linear-gradient(
+    to left,
+    rgb(58 38 12 / 0.34),
+    rgb(58 38 12 / 0.09) 5%,
+    transparent 15%
+  );
+}
+
+/* ─── the boards ──────────────────────────────────────────────────── */
+.board {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 3px;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  container-type: size;
+  container-name: page;
+  background-color: var(--board);
+  background-image:
+    radial-gradient(
+      ellipse 70% 60% at 32% 22%,
+      rgb(255 214 168 / 0.07),
+      transparent 68%
+    ),
+    repeating-linear-gradient(
+      90deg,
+      rgb(0 0 0 / 0.05) 0 1px,
+      transparent 1px 3px
+    ),
+    repeating-linear-gradient(
+      0deg,
+      rgb(0 0 0 / 0.05) 0 1px,
+      transparent 1px 3px
+    );
+  box-shadow:
+    inset 0 0 4rem rgb(0 0 0 / 0.55),
+    inset 0 0 1rem rgb(0 0 0 / 0.4);
+}
+
+.gilt {
+  color: var(--gilt);
+  text-shadow:
+    0 1px 0 rgb(0 0 0 / 0.55),
+    0 0 0.6rem rgb(201 162 39 / 0.28);
+}
+
+.gilt-rule {
+  border-color: var(--gilt);
+  opacity: 0.72;
+}
+
+/* ─── page furniture ──────────────────────────────────────────────── */
+/* Deliberately no z-index: a stacking context here would cut every child
+   off from the paper's backdrop and mix-blend-mode would stop working. */
+.page-inner {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 9cqh 9cqw 7cqh;
+}
+
+.smallcaps {
+  /* Set as written: no capitalising, no small capitals. */
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: 0.055em;
+  font-size: clamp(0.58rem, 2.35cqw, 0.86rem);
+  color: var(--ink-faint);
+}
+
+.running-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 2.4cqh;
+  margin-bottom: 4cqh;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='4' preserveAspectRatio='none'%3E%3Cpath d='M0 2 C30 1.2 56 2.9 90 2.1 S152 1.1 188 2.4 S252 1.4 320 2.1' fill='none' stroke='%232a2018' stroke-opacity='0.4' stroke-width='0.9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: bottom left;
+  background-size: 100% 4px;
+}
+
+.folio {
+  margin-top: auto;
+  padding-top: 3cqh;
+  text-align: center;
+}
+
+/* Clipped, never scrolled - the type is shrunk to the leaf instead. */
+.page-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  font-size: clamp(0.78rem, 3cqw, 1.06rem);
+  line-height: 1.62;
+  color: var(--ink);
+}
+
+.chapter-title {
+  font-size: 2.05em;
+  line-height: 1.08;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+}
+
+.page-body p {
+  margin-bottom: 0.9em;
+  text-wrap: pretty;
+}
+.page-body p:last-child {
+  margin-bottom: 0;
+}
+.justified p {
+  text-align: justify;
+  hyphens: auto;
+  -webkit-hyphens: auto;
+}
+
+.dropcap::first-letter {
+  float: left;
+  font-weight: 500;
+  font-size: 3.6em;
+  line-height: 0.74;
+  margin: 0.05em 0.08em 0 0;
+  color: var(--rubric);
+  font-family: var(--font-display);
+  font-variant-numeric: normal;
+}
+
+
+/* Labels inside the text block are sized in em, so the fitter moves them
+   along with the prose instead of leaving them stranded at full size. */
+.page-body .smallcaps {
+  font-size: 0.76em;
+}
+
+.leader {
+  flex: 1 1 auto;
+  min-width: 1rem;
+  margin: 0 0.5rem;
+  transform: translateY(-0.3em);
+  border-bottom: 1px dotted var(--rule-strong);
+}
+
+.ornament {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.8rem;
+  color: var(--ink-faint);
+}
+.ornament::before,
+.ornament::after {
+  content: "";
+  height: 1px;
+  width: 2.4rem;
+  background: var(--rule);
+}
+
+/* ─── the tipped-in plate ─────────────────────────────────────────── */
+.plate {
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* A ruled mount with a fine hatched band, as an engraved plate is framed. */
+.plate-mount {
+  padding: 0.9cqw;
+  border: 1px solid var(--rule-strong);
+  background:
+    repeating-linear-gradient(
+      45deg,
+      rgb(42 32 24 / 0.5) 0 1.5px,
+      rgb(42 32 24 / 0) 1.5px 4.5px
+    ),
+    var(--leaf-warm);
+  box-shadow: 0 0.5cqh 1.2cqh rgb(40 24 8 / 0.32);
+}
+
+/* The plate leaf gives up most of its margins to the image. */
+.page-inner.plate-page {
+  padding: 3.5cqh 4.5cqw;
+}
+
+/* Six by ten, filling the leaf but still inside the trim. */
+.plate-image {
+  position: relative;
+  height: 80cqh;
+  aspect-ratio: 6 / 10;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px rgb(42 32 24 / 0.55);
+}
+
+/* ─── the only instruction the reader gets ────────────────────────── */
+.hint {
+  position: fixed;
+  bottom: 1.9rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  font-family: var(--font-display);
+  letter-spacing: 0.12em;
+  font-size: 0.92rem;
+  font-weight: 500;
+  white-space: nowrap;
+  color: rgb(255 236 200 / 0.5);
+  pointer-events: none;
+  animation: hint-in 900ms ease 1250ms both;
+}
+
+@keyframes hint-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ─── the Fell types carry every heading and initial ──────────────── */
+h1,
+h2,
+h3,
+h4,
+.chapter-title {
+  font-family: var(--font-display);
+  font-weight: 400;
+  text-wrap: balance;
+}
+
+/* ─── the binding ─────────────────────────────────────────────────── */
+
+/* The spine the leaves disappear into, with a woven headband at head and
+   tail - the detail that separates a bound volume from two flat pages. */
+.binding {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 3.4%;
+  transform: translateX(-50%) translateZ(7px);
+  z-index: 30;
+  pointer-events: none;
+  background: linear-gradient(
+    to right,
+    rgb(24 12 4 / 0) 0%,
+    rgb(28 14 5 / 0.42) 26%,
+    rgb(10 5 2 / 0.72) 50%,
+    rgb(28 14 5 / 0.42) 74%,
+    rgb(24 12 4 / 0) 100%
+  );
+  transition: opacity 350ms ease;
+}
+
+
+/* ─── drawn rules ─────────────────────────────────────────────────── */
+
+/* Twelve separately drawn strokes. Nothing on the page repeats a line,
+   which is the whole difference between a ruled grid and a hand. */
+:root {
+  --rule-1: url("data:image/svg+xml,<svg%20xmlns='http%3A//www.w3.org/2000/svg'%20width='320'%20height='5'%20preserveAspectRatio='none'><path%20d='M0.0%202.72%20C26.7%202.94%2026.7%202.10%2053.3%202.30%20C80.0%201.94%2080.0%202.73%20106.7%203.00%20C133.3%202.90%20133.3%203.61%20160.0%203.32%20C186.7%203.22%20186.7%202.60%20213.3%202.92%20C240.0%202.72%20240.0%202.85%20266.7%202.66%20C293.3%202.59%20293.3%203.06%20320.0%203.31'%20fill='none'%20stroke='%232a2018'%20stroke-opacity='0.43'%20stroke-width='0.88'%20stroke-linecap='round'/></svg>");
+  --rule-2: url("data:image/svg+xml,<svg%20xmlns='http%3A//www.w3.org/2000/svg'%20width='320'%20height='5'%20preserveAspectRatio='none'><path%20d='M0.0%202.74%20C40.0%202.93%2040.0%203.14%2080.0%203.11%20C120.0%203.18%20120.0%201.69%20160.0%202.06%20C200.0%201.74%20200.0%201.63%20240.0%201.84%20C280.0%201.92%20280.0%201.81%20320.0%201.77'%20fill='none'%20stroke='%232a2018'%20stroke-opacity='0.40'%20stroke-width='1.02'%20stroke-linecap='round'/></svg>");
+  --rule-3: url("data:image/svg+xml,<svg%20xmlns='http%3A//www.w3.org/2000/svg'%20width='320'%20height='5'%20preserveAspectRatio='none'><path%20d='M0.0%202.25%20C32.0%201.87%2032.0%202.49%2064.0%202.80%20C96.0%202.98%2096.0%202.23%20128.0%202.06%20C160.0%201.79%20160.0%203.05%20192.0%203.07%20C224.0%203.22%20224.0%202.68%20256.0%202.59%20C288.0%202.26%20288.0%201.37%20320.0%201.69'%20fill='none'%20stroke='%232a2018'%20stroke-opacity='0.42'%20stroke-width='0.92'%20stroke-linecap='round'/></svg>");
+  --rule-4: url("data:image/svg+xml,<svg%20xmlns='http%3A//www.w3.org/2000/svg'%20width='320'%20height='5'%20preserveAspectRatio='none'><path%20d='M0.0%202.92%20C26.7%203.29%2026.7%202.52%2053.3%202.70%20C80.0%203.00%2080.0%202.12%20106.7%202.18%20C133.3%202.52%20133.3%202.79%20160.0%203.13%20C186.7%202.78%20186.7%202.17%20213.3%201.80%20C240.0%201.82%20240.0%201.82%20266.7%201.83%20C293.3%202.20%20293.3%203.83%20320.0%203.58'%20fill='none'%20stroke='%232a2018'%20stroke-opacity='0.28'%20stroke-width='0.88'%20stroke-linecap='round'/></svg>");
+  --rule-5: url("data:image/svg+xml,<svg%20xmlns='http%3A//www.w3.org/2000/svg'%20width='320'%20height='5'%20preserveAspectRatio='none'><path%20d='M0.0%203.09%20C40.0%203.33%2040.0%201.67%2080.0%201.63%20C120.0%201.48%20120.0%202.97%20160.0%203.03%20C200.0%202.82%20200.0%202.78%20240.0%202.42%20C280.0%202.43%20280.0%203.13%20320.0%202.77'%20fill='none'%20stroke='%232a2018'%20stroke-opacity='0.38'%20stroke-width='0.79'%20stroke-linecap='round'/></svg>");
+  --rule-6: url("data:image/svg+xml,<svg%20xmlns='http%3A//www.w3.org/2000/svg'%20width='320'%20height='5'%20preserveAspectRatio='none'><path%20d='M0.0%202.17%20C32.0%202.48%2032.0%203.66%2064.0%203.43%20C96.0%203.82%2096.0%201.63%20128.0%201.99%20C160.0%202.34%20160.0%202.20%20192.0%202.54%20C224.0%202.74%20224.0%203.71%20256.0%203.55%20C288.0%203.47%20288.0%201.51%20320.0%201.87'%20fill='none'%20stroke='%232a2018'%20stroke-opacity='0.43'%20stroke-width='1.03'%20stroke-linecap='round'/></svg>");
+  --rule-7: url("data:image/svg+xml,<svg%20xmlns='http%3A//www.w3.org/2000/svg'%20width='320'%20height='5'%20preserveAspectRatio='none'><path%20d='M0.0%202.50%20C26.7%202.25%2026.7%202.12%2053.3%202.33%20C80.0%202.60%2080.0%202.47%20106.7%202.49%20C133.3%202.87%20133.3%202.41%20160.0%202.06%20C186.7%201.85%20186.7%202.30%20213.3%202.42%20C240.0%202.70%20240.0%201.75%20266.7%201.62%20C293.3%201.87%20293.3%201.72%20320.0%201.75'%20fill='none'%20stroke='%232a2018'%20stroke-opacity='0.44'%20stroke-width='0.83'%20stroke-linecap='round'/></svg>");
+  --rule-8: url("data:image/svg+xml,<svg%20xmlns='http%3A//www.w3.org/2000/svg'%20width='320'%20height='5'%20preserveAspectRatio='none'><path%20d='M0.0%202.72%20C26.7%202.98%2026.7%202.03%2053.3%202.16%20C80.0%202.32%2080.0%201.99%20106.7%201.96%20C133.3%201.85%20133.3%202.17%20160.0%201.90%20C186.7%201.51%20186.7%202.23%20213.3%202.01%20C240.0%202.12%20240.0%202.84%20266.7%203.07%20C293.3%202.79%20293.3%201.91%20320.0%201.58'%20fill='none'%20stroke='%232a2018'%20stroke-opacity='0.26'%20stroke-width='0.84'%20stroke-linecap='round'/></svg>");
+  --rule-9: url("data:image/svg+xml,<svg%20xmlns='http%3A//www.w3.org/2000/svg'%20width='320'%20height='5'%20preserveAspectRatio='none'><path%20d='M0.0%202.50%20C32.0%202.83%2032.0%202.70%2064.0%202.69%20C96.0%202.39%2096.0%203.17%20128.0%202.92%20C160.0%203.31%20160.0%203.71%20192.0%203.54%20C224.0%203.65%20224.0%203.11%20256.0%202.85%20C288.0%202.48%20288.0%201.93%20320.0%201.80'%20fill='none'%20stroke='%232a2018'%20stroke-opacity='0.41'%20stroke-width='0.83'%20stroke-linecap='round'/></svg>");
+  --rule-10: url("data:image/svg+xml,<svg%20xmlns='http%3A//www.w3.org/2000/svg'%20width='320'%20height='5'%20preserveAspectRatio='none'><path%20d='M0.0%202.21%20C32.0%202.18%2032.0%202.64%2064.0%202.53%20C96.0%202.39%2096.0%202.19%20128.0%201.97%20C160.0%201.66%20160.0%202.71%20192.0%203.03%20C224.0%202.79%20224.0%201.60%20256.0%201.68%20C288.0%201.33%20288.0%201.87%20320.0%202.16'%20fill='none'%20stroke='%232a2018'%20stroke-opacity='0.38'%20stroke-width='0.77'%20stroke-linecap='round'/></svg>");
+  --rule-11: url("data:image/svg+xml,<svg%20xmlns='http%3A//www.w3.org/2000/svg'%20width='320'%20height='5'%20preserveAspectRatio='none'><path%20d='M0.0%202.33%20C40.0%202.18%2040.0%202.77%2080.0%203.02%20C120.0%203.24%20120.0%201.87%20160.0%201.93%20C200.0%201.94%20200.0%203.75%20240.0%203.57%20C280.0%203.31%20280.0%201.67%20320.0%201.93'%20fill='none'%20stroke='%232a2018'%20stroke-opacity='0.27'%20stroke-width='0.70'%20stroke-linecap='round'/></svg>");
+  --rule-12: url("data:image/svg+xml,<svg%20xmlns='http%3A//www.w3.org/2000/svg'%20width='320'%20height='5'%20preserveAspectRatio='none'><path%20d='M0.0%202.39%20C26.7%201.99%2026.7%203.29%2053.3%203.21%20C80.0%202.95%2080.0%202.10%20106.7%201.77%20C133.3%202.11%20133.3%201.77%20160.0%201.97%20C186.7%201.77%20186.7%202.00%20213.3%202.18%20C240.0%202.19%20240.0%202.69%20266.7%202.74%20C293.3%203.08%20293.3%202.50%20320.0%202.53'%20fill='none'%20stroke='%232a2018'%20stroke-opacity='0.37'%20stroke-width='0.91'%20stroke-linecap='round'/></svg>");
+}
+
+[class*="hr-"] {
+  background-repeat: no-repeat;
+  background-size: 100% 5px;
+  border: 0 !important;
+}
+.hr-top {
+  background-position: top left;
+  padding-top: 5px;
+}
+:not(.hr-top)[class*="hr-"] {
+  background-position: bottom left;
+  padding-bottom: 5px;
+}
+.hr-1 {
+  background-image: var(--rule-1);
+}
+.hr-2 {
+  background-image: var(--rule-2);
+}
+.hr-3 {
+  background-image: var(--rule-3);
+}
+.hr-4 {
+  background-image: var(--rule-4);
+}
+.hr-5 {
+  background-image: var(--rule-5);
+}
+.hr-6 {
+  background-image: var(--rule-6);
+}
+.hr-7 {
+  background-image: var(--rule-7);
+}
+.hr-8 {
+  background-image: var(--rule-8);
+}
+.hr-9 {
+  background-image: var(--rule-9);
+}
+.hr-10 {
+  background-image: var(--rule-10);
+}
+.hr-11 {
+  background-image: var(--rule-11);
+}
+.hr-12 {
+  background-image: var(--rule-12);
+}
+
+.ornament::before {
+  height: 5px;
+  width: 3.2rem;
+  background: var(--rule-3) no-repeat;
+  background-size: 100% 5px;
+}
+.ornament::after {
+  height: 5px;
+  width: 3.2rem;
+  background: var(--rule-9) no-repeat;
+  background-size: 100% 5px;
+}
+
+/* ─── ageing ──────────────────────────────────────────────────────── */
+
+/* Eight stain patterns, cycled across the leaves. */
+[data-age="0"] .paper {
+  --fx1: 22%;
+  --fy1: 19%;
+  --fx2: 64%;
+  --fy2: 79%;
+  --fx3: 8%;
+  --fy3: 92%;
+  --fx4: 77%;
+  --fy4: 31%;
+  --fx5: 55%;
+  --fy5: 31%;
+  --burn: 0.24;
+}
+[data-age="1"] .paper {
+  --fx1: 14%;
+  --fy1: 8%;
+  --fx2: 88%;
+  --fy2: 85%;
+  --fx3: 29%;
+  --fy3: 88%;
+  --fx4: 91%;
+  --fy4: 18%;
+  --fx5: 55%;
+  --fy5: 52%;
+  --burn: 0.29;
+}
+[data-age="2"] .paper {
+  --fx1: 34%;
+  --fy1: 12%;
+  --fx2: 81%;
+  --fy2: 84%;
+  --fx3: 11%;
+  --fy3: 89%;
+  --fx4: 70%;
+  --fy4: 24%;
+  --fx5: 35%;
+  --fy5: 66%;
+  --burn: 0.30;
+}
+[data-age="3"] .paper {
+  --fx1: 14%;
+  --fy1: 12%;
+  --fx2: 72%;
+  --fy2: 65%;
+  --fx3: 16%;
+  --fy3: 73%;
+  --fx4: 70%;
+  --fy4: 29%;
+  --fx5: 55%;
+  --fy5: 32%;
+  --burn: 0.27;
+}
+[data-age="4"] .paper {
+  --fx1: 15%;
+  --fy1: 29%;
+  --fx2: 61%;
+  --fy2: 72%;
+  --fx3: 12%;
+  --fy3: 71%;
+  --fx4: 75%;
+  --fy4: 9%;
+  --fx5: 36%;
+  --fy5: 59%;
+  --burn: 0.20;
+}
+[data-age="5"] .paper {
+  --fx1: 22%;
+  --fy1: 23%;
+  --fx2: 78%;
+  --fy2: 72%;
+  --fx3: 28%;
+  --fy3: 78%;
+  --fx4: 93%;
+  --fy4: 16%;
+  --fx5: 58%;
+  --fy5: 40%;
+  --burn: 0.35;
+}
+[data-age="6"] .paper {
+  --fx1: 17%;
+  --fy1: 32%;
+  --fx2: 63%;
+  --fy2: 70%;
+  --fx3: 13%;
+  --fy3: 87%;
+  --fx4: 83%;
+  --fy4: 34%;
+  --fx5: 46%;
+  --fy5: 49%;
+  --burn: 0.35;
+}
+[data-age="7"] .paper {
+  --fx1: 17%;
+  --fy1: 22%;
+  --fx2: 69%;
+  --fy2: 67%;
+  --fx3: 14%;
+  --fy3: 75%;
+  --fx4: 92%;
+  --fy4: 12%;
+  --fx5: 63%;
+  --fy5: 64%;
+  --burn: 0.43;
+}
+
+/* Ink that sank a little into the paper rather than sitting on top. */
+.page-body,
+.running-head,
+.folio,
+.chapter-title {
+  text-shadow: 0.015em 0.015em 0.012em rgb(46 30 10 / 0.28);
+}
+
+/* ─── the contents plates ─────────────────────────────────────────── */
+
+/* An equal share of the leaf under each contents entry, waiting for an
+   image. `flex: 1` splits whatever height is left evenly between the two
+   entries on the page, so the slots always match. 5:2 at full size. */
+.toc-plate {
+  position: relative;
+  margin: 1.6cqh 0 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Empty, it reads as a ruled-off space waiting for a plate. */
+.toc-plate:not(:has(img)) {
+  background-color: rgb(120 88 40 / 0.055);
+  box-shadow:
+    inset 0 0 0 1px rgb(42 32 24 / 0.18),
+    inset 0 0 1.2rem rgb(84 58 22 / 0.16);
+}
+
+/* Filled, the drawing is multiplied into the paper so the white of the
+   sheet it was drawn on drops out and the foxing shows through the
+   graphite. A pencil study, not a photograph pasted onto a page. */
+.toc-plate img {
+  mix-blend-mode: multiply;
+  filter: grayscale(1) contrast(1.04);
+  opacity: 0.92;
+}
+
+/* ─── the second plate frame ──────────────────────────────────────── */
+
+/* A drawn double fillet rather than the hatched mount used on the
+   frontispiece, so the two plates in the volume are not framed alike. */
+.plate-frame {
+  padding: 1.8cqw;
+  background-image: url("data:image/svg+xml,<svg xmlns='http%3A//www.w3.org/2000/svg' viewBox='0 0 400 550' preserveAspectRatio='none'><path d='M7 6 C120 4 282 10 393 6 C395 150 391 402 393 544 C282 546 120 540 7 544 C5 402 9 150 7 6 Z' fill='none' stroke='%230f0d0a' stroke-opacity='0.88' stroke-width='3.4' vector-effect='non-scaling-stroke'/><path d='M19 18 C132 16 268 22 381 18 C383 152 379 398 381 532 C268 534 132 528 19 532 C17 398 21 152 19 18 Z' fill='none' stroke='%230f0d0a' stroke-opacity='0.62' stroke-width='1.5' vector-effect='non-scaling-stroke'/></svg>");
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+}
+
+/* Sized to the miniature's own proportions, so none of it is cropped. */
+.plate-image-mini {
+  height: 74cqh;
+  aspect-ratio: 1082 / 1454;
+  box-shadow: 0 0.4cqh 1cqh rgb(40 24 8 / 0.28);
+}
+
+/* The second border: a single drawn rule laid straight onto the edge of
+   the image, inside the fillet that frames the whole plate. */
+.plate-image-ruled::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,<svg xmlns='http%3A//www.w3.org/2000/svg' viewBox='0 0 400 550' preserveAspectRatio='none'><path d='M6 5 C118 3 284 8 394 5 C395.6 148 393 404 394 545 C284 547 118 543 6 545 C4.4 404 7 148 6 5 Z' fill='none' stroke='%230f0d0a' stroke-opacity='0.94' stroke-width='7' vector-effect='non-scaling-stroke'/></svg>");
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+}
+.plate-image-mini img {
+  filter: saturate(0.94) contrast(1.02) brightness(0.98);
+}
+
+
+/* ─── the scroll ──────────────────────────────────────────────────── */
+
+/* In the hand there is no spread to open, so the volume becomes a roll:
+   two turned dowels with a length of parchment between them. */
+.scroll {
+  display: flex;
+  flex-direction: column;
+  width: min(88vw, 430px);
+}
+
+.roller {
+  position: relative;
+  z-index: 6;
+  height: 1.35rem;
+  border-radius: 0.7rem;
+  background: linear-gradient(
+    to bottom,
+    #7b5730 0%,
+    #4a2f18 34%,
+    #2a1a0d 62%,
+    #5a3a1e 100%
+  );
+  box-shadow:
+    inset 0 0.06rem 0.12rem rgb(255 214 160 / 0.22),
+    0 0.35rem 0.7rem rgb(0 0 0 / 0.55);
+}
+
+/* the dowel ends, protruding past the parchment */
+.roller::before,
+.roller::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 0.5rem;
+  height: 2rem;
+  transform: translateY(-50%);
+  border-radius: 0.25rem;
+  background: linear-gradient(to bottom, #8a6337 0%, #3a2414 70%, #55371c 100%);
+  box-shadow: 0 0.2rem 0.5rem rgb(0 0 0 / 0.5);
+}
+.roller::before {
+  left: -0.34rem;
+}
+.roller::after {
+  right: -0.34rem;
+}
+
+/* The parchment is revealed rather than stretched: the track keeps its
+   full height while the window that shows it grows. Once open it is an
+   ordinary scrolling surface - the reader just scrolls. */
+.scroll-window {
+  position: relative;
+  height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  transition: height 1000ms cubic-bezier(0.22, 0.9, 0.24, 1);
+  box-shadow: 0 1.2rem 1.6rem rgb(0 0 0 / 0.45);
+}
+.scroll.is-open .scroll-window {
+  height: 78svh;
+}
+
+.scroll-track {
+  position: relative;
+}
+
+/* A length of parchment has no page height to obey. Panels start at a
+   screenful and grow as far as the writing needs, which is the whole point
+   of scrolling: the type never has to be shrunk to fit. */
+.scroll-panel {
+  position: relative;
+}
+
+/* Out of the fixed-page geometry and into ordinary flow. */
+.scroll .paper {
+  position: relative;
+  inset: auto;
+  height: auto;
+  container-type: inline-size;
+}
+.scroll .page-inner {
+  position: relative;
+  inset: auto;
+  min-height: 76svh;
+  padding: 5svh 7cqw 4svh;
+}
+.centred {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+}
+/* On the roll the panel has no fixed height, so a percentage would collapse
+   to the height of the words. Give it a screenful to centre inside. */
+.scroll .centred {
+  height: auto;
+  min-height: 62svh;
+}
+
+.scroll .page-body {
+  overflow: visible;
+  font-size: clamp(1rem, 4.6cqw, 1.15rem);
+  line-height: 1.62;
+}
+.scroll .running-head,
+.scroll .folio {
+  font-size: 1rem;
+}
+.scroll .running-head {
+  padding-bottom: 1.2svh;
+  margin-bottom: 2.4svh;
+}
+.scroll .folio {
+  padding-top: 2.4svh;
+}
+
+/* Where the parchment curves back into each dowel. These sit on the frame,
+   not inside the scroller, so they stay put while the length runs past. */
+.scroll::before,
+.scroll::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2.4rem;
+  z-index: 7;
+  pointer-events: none;
+}
+.scroll::before {
+  top: 1.35rem;
+  background: linear-gradient(
+    to bottom,
+    rgb(46 28 8 / 0.55),
+    rgb(46 28 8 / 0.12) 45%,
+    transparent
+  );
+}
+.scroll::after {
+  bottom: 1.35rem;
+  background: linear-gradient(
+    to top,
+    rgb(46 28 8 / 0.55),
+    rgb(46 28 8 / 0.12) 45%,
+    transparent
+  );
+}
+
+/* A roll has no square corners, no burnt edges part way along it, and no
+   gutter: those are what would otherwise show as seams between panels. */
+.scroll {
+  position: relative;
+}
+.scroll .paper {
+  border-radius: 0;
+  box-shadow: none;
+  /* One faint mark per panel. Four of them, at panel size, read as
+     rendering artefacts rather than as age. */
+  background-image: radial-gradient(
+    ellipse 14% 7% at var(--fx1) var(--fy1),
+    rgb(140 96 38 / 0.11),
+    transparent 74%
+  );
+}
+.scroll .paper::before {
+  background: none;
+}
+
+/* The measure is far narrower in the hand, so the type has to be set larger
+   relative to it - container units alone would leave it tiny. */
+/* On the roll a plate is bounded by the width of the parchment, and its
+   height simply follows from the aspect ratio. */
+.scroll .plate,
+.scroll .plate-frame,
+.scroll .plate-mount {
+  width: 100%;
+}
+.scroll .plate-image,
+.scroll .plate-image-mini {
+  width: 100%;
+  height: auto;
+}
+.scroll .page-inner.plate-page {
+  padding: 4svh 6cqw;
+}
+/* The one place the choice of layout is made. Both readings are in the
+   document from the first byte; the stylesheet shows exactly one, before any
+   script has run and without anything for a script to get wrong. */
+@media (max-width: 899px) {
+  .stage-bound {
+    display: none;
+  }
+}
+@media (min-width: 900px) {
+  .stage-roll {
+    display: none;
+  }
+}
+
+@media (max-width: 899px) {
+  .hint {
+    bottom: 0.85rem;
+    font-size: 0.74rem;
+    letter-spacing: 0.1em;
+  }
+}
+
+/* The stage holds keyboard focus so the arrows work without a click first,
+   but it is not something the reader ever needs to see outlined. */
+.stage:focus,
+.stage:focus-visible {
+  outline: none;
+}
+
+/* The stage holds keyboard focus so the arrows answer without a click first.
+   It is a reading surface, not a control: never outline it. */
+.stage:focus,
+.stage:focus-visible {
+  outline: none;
+}
