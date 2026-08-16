@@ -29,6 +29,18 @@
 
   --rule: rgb(42 32 24 / 0.24);
   --rule-strong: rgb(42 32 24 / 0.42);
+
+  /* How big the volume is. Written down once, because two quite separate
+     things have to agree on it to the pixel: the bound reading on the desk,
+     and the book the approach carries in off the shelf. */
+  --volume-w: min(93vw, 1160px);
+  --volume-h: min(calc(var(--volume-w) / 1.52), 84svh);
+
+  /* How long the entrance takes, and how long the library then takes to
+     dissolve off the desk. Mirrored by two constants in Prologue.tsx and
+     nothing else. */
+  --approach: 3300ms;
+  --dissolve: 300ms;
 }
 
 @theme inline {
@@ -114,6 +126,7 @@
     *::before,
     *::after {
       animation-duration: 0.01ms !important;
+      animation-delay: 0ms !important;
       transition-duration: 0.01ms !important;
     }
   }
@@ -125,36 +138,30 @@
   place-items: center;
   height: 100svh;
   width: 100%;
-  perspective: 2800px;
+  /* Nearly five times the volume's own width - the old figure - is an
+     orthographic projection in all but name: a sheet turning under it has
+     no near edge and no far one, which is the other half of why it read
+     as a plate. */
+  perspective: 2000px;
   perspective-origin: 50% 44%;
   touch-action: pan-y;
 }
 
-/* The volume is laid flat on the desk and swings up to face the reader:
-   rotateX 90deg to 0, rising from below. It has to carry preserve-3d, or
-   the leaves inside it would be flattened and stop turning. */
+/* The volume no longer has to make its own entrance - it is carried in off
+   the shelf by the approach and set down here already facing the reader.
+   The element stays, and has to keep preserve-3d, or the leaves inside it
+   would be flattened and stop turning. */
 .riser {
   transform-style: preserve-3d;
   transform-origin: 50% 100%;
-  animation: rise 1500ms cubic-bezier(0.22, 0.88, 0.24, 1) both;
-}
-
-@keyframes rise {
-  from {
-    transform: translateY(24vh) rotateX(90deg);
-  }
-  to {
-    transform: translateY(0) rotateX(0deg);
-  }
 }
 
 /* ─── the volume ──────────────────────────────────────────────────── */
 .volume {
   position: relative;
   transform-style: preserve-3d;
-  width: min(93vw, 1160px);
-  aspect-ratio: 1.52;
-  max-height: 84svh;
+  width: var(--volume-w);
+  height: var(--volume-h);
   transition: transform 900ms cubic-bezier(0.42, 0, 0.24, 1);
 }
 
@@ -226,6 +233,23 @@
 }
 
 /* ─── a leaf ──────────────────────────────────────────────────────── */
+
+/* How far over the leaf has been carried, 0 to 1.
+
+   Registered, and so transitionable - which is the entire reason it is a
+   property and not just a number in a component. A leaf under the hand is
+   stepped through this value frame by frame; a leaf turned by a key is
+   transitioned through it, and there is no frame anywhere in the program
+   at which anything in script knows how far over that one has got. Kept
+   here it is a real number the stylesheet can read at any instant, so the
+   swing, the bow of the sheet and the shading across it are all worked out
+   from it - and all three then come out right for both kinds of turn. */
+@property --turn {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0;
+}
+
 .leaf {
   position: absolute;
   top: 0;
@@ -234,23 +258,203 @@
   height: 100%;
   transform-origin: left center;
   transform-style: preserve-3d;
-  transition: transform 1000ms cubic-bezier(0.4, 0.02, 0.22, 1);
+  /* Which pile the leaf lies in, and how deep.
+
+     This has to be asked of the angle the sheet is actually standing at,
+     never of the page it is going to end up on. Asked of the destination it
+     is answered the instant a key is pressed - while the leaf is still
+     lying flat on the pile it is supposedly leaving - and the sheet drops
+     behind the one underneath it for half a turn, which is the page that
+     flashes into view behind the one being turned.
+
+     Asked of --turn, the answer changes only as the sheet passes edge on,
+     where it has no width to show for it and nothing can be seen to jump.
+     The thousandfold is what turns a ramp into a step; the step is at a
+     half, and half way through a turn a leaf is a line. */
+  --flip: clamp(0, (var(--turn) - 0.5) * 1000, 1);
+  --depth: calc(var(--front) * (1 - var(--flip)) + var(--back) * var(--flip));
+  z-index: calc(var(--depth));
+
+  /* A leaf is a pixel and a fifth thick. Not a look but a correctness
+     figure: inside a preserve-3d subtree a browser has no depth buffer, it
+     sorts the surfaces and paints them in order, and leaves a third of a
+     pixel apart give that sort nothing to work with. It then comes out
+     differently in different bands of the page and a stripe of the sheet
+     underneath is painted over the one on top.
+
+     And sheared, not turned, by the corner it is being held at. A rotation
+     about any other axis would carry the sewn edge up out of the gutter;
+     a shear leaves everything standing on x = 0 exactly where it was, and
+     that column is the spine. Most of it on edge, none of it lying flat -
+     so a leaf let go of unwinds along with its fall, for free. */
+  transform: translateZ(calc(var(--depth) * 1.2px))
+    rotateY(calc(var(--turn) * -180deg))
+    skewY(calc(var(--lean, 0) * sin(var(--turn) * 180deg) * 10deg));
+  transition: --turn 1000ms cubic-bezier(0.4, 0.02, 0.22, 1);
+}
+
+/* ─── the sheet is not a plate ────────────────────────────────────── */
+
+/* A leaf turning as one flat rectangle is sheet metal on a hinge, and no
+   amount of shading will talk the eye out of it. So it is dealt into four
+   panels hinged end to end, each holding its own slice of the same page,
+   and the run bows as it turns: nothing at all lying flat, most of it
+   standing on edge, which is what paper does and steel does not. */
+.panel {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 25%;
+  height: 100%;
+  transform-origin: left center;
+  transform-style: preserve-3d;
+  /* 34 and the 10 above are known to BoundVolume.tsx as well: the hand
+     has to solve for the same shape the eye is being shown, and there is
+     no way to hand a number from a stylesheet to a program. */
+  --curl: calc(34deg * sin(var(--turn) * 180deg));
+  --step: calc(var(--curl) / -4);
+  transform: rotateY(var(--step));
+}
+
+/* The panel at the gutter sets off half a bow back, so the middle of the
+   run still points where the leaf as a whole is pointing. */
+.panel-root {
+  transform: rotateY(calc(var(--step) * -1.5));
+}
+
+/* And every other panel hangs off the end of the one before it. */
+.panel .panel {
+  left: 100%;
+  width: 100%;
 }
 
 /* Both faces carry an explicit 3-D transform. Without one, Gecko will
    not compute a backface at all and the recto shows through mirrored. */
-.face {
+.pane {
   position: absolute;
   inset: 0;
+  overflow: hidden;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
-  transform-style: flat;
 }
-.face.recto {
+.pane.recto {
   transform: rotateY(0deg) translateZ(0.01px);
 }
-.face.verso {
+.pane.verso {
   transform: rotateY(180deg) translateZ(0.01px);
+}
+
+/* The page at its full size, slid across until this panel's window falls
+   on its own quarter of it. Full size, because the page is set in
+   container units and a quarter of a page is not a quarter of a page. */
+.pane-in {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  width: 400%;
+  left: calc(var(--slice) * -100%);
+}
+
+/* And every value that moves stops here.
+
+   --turn and the four worked out from it change on every frame of a turn,
+   and a custom property is inherited: a page carries several hundred
+   elements, none of which have any use for the angle of the sheet they are
+   printed on, and all of which were having their style recomputed sixty
+   times a second because of it. Turning three or four leaves at once, that
+   is a few thousand elements a frame - which is the whole of the stutter.
+
+   Declared here, the subtree below inherits one constant instead, and a
+   change above it stops at this line. */
+.pane-in,
+.reach {
+  --turn: initial;
+  --lean: initial;
+  --flip: initial;
+  --depth: initial;
+  --curl: initial;
+  --step: initial;
+}
+
+/* What the fitter settled on for this face, measured once on the flat
+   sheet below and read off here by all four copies of it. */
+.pane.recto .page-body {
+  font-size: var(--fit-recto, clamp(0.78rem, 3cqw, 1.06rem));
+}
+.pane.verso .page-body {
+  font-size: var(--fit-verso, clamp(0.78rem, 3cqw, 1.06rem));
+}
+
+/* Standing up out of the lamplight a sheet shades by how far off square it
+   has turned - and every panel of the run stands at its own angle, so the
+   sheet shades across its own bow. That gradient is most of what the eye
+   actually reads the curve from. */
+.pane::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+  --phi: calc(
+    var(--turn) * -180deg + var(--step) * -1.5 + var(--i) * var(--step)
+  );
+  /* Rounded, because this is the one thing here that costs a repaint: a
+     gradient cannot be composited, so every fresh pair of colours re-paints
+     the panel and the slice of page under it. At a twentieth the shading
+     settles about twenty times across a turn instead of sixty, which is
+     three times less painting for a step of half a per cent of alpha that
+     nobody can see. The bow itself is not rounded - that is a transform,
+     and transforms are free. */
+  --near: round(calc(1 - cos(var(--phi)) * cos(var(--phi))), 0.05);
+  --far: round(
+    calc(1 - cos(var(--phi) + var(--step)) * cos(var(--phi) + var(--step))),
+    0.05
+  );
+  background: linear-gradient(
+    to right,
+    rgb(22 12 2 / calc(var(--near) * 0.44)),
+    rgb(22 12 2 / calc(var(--far) * 0.44))
+  );
+}
+.pane.verso::after {
+  background: linear-gradient(
+    to left,
+    rgb(22 12 2 / calc(var(--near) * 0.44)),
+    rgb(22 12 2 / calc(var(--far) * 0.44))
+  );
+}
+
+/* The page as one flat sheet, and never seen: what is drawn is the run of
+   panels over it. But it is this sheet that is actually reached for. A
+   link cut across four clipped windows is not a link, and a page said four
+   times over to a screen reader is not one page - so the run is inert and
+   this carries the reading. It is also the only copy the fitter measures. */
+.reach {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.reach.recto {
+  transform: rotateY(0deg) translateZ(0.01px);
+}
+.reach.verso {
+  transform: rotateY(180deg) translateZ(0.01px);
+}
+
+/* ─── a leaf in the hand ──────────────────────────────────────────── */
+
+/* A leaf is something the reader picks up, so it is offered as one - and
+   while one is being carried, the whole desk says so. */
+.stage-bound .volume {
+  cursor: grab;
+}
+.stage-bound.is-gripping {
+  cursor: grabbing;
+}
+.stage-bound.is-gripping * {
+  cursor: inherit !important;
 }
 
 /* ─── paper ───────────────────────────────────────────────────────── */
@@ -334,7 +538,7 @@
   z-index: 4;
   pointer-events: none;
 }
-.face.recto .paper::before {
+.pane.recto .paper::before {
   background: linear-gradient(
     to right,
     rgb(58 38 12 / 0.34),
@@ -342,7 +546,7 @@
     transparent 15%
   );
 }
-.face.verso .paper::before {
+.pane.verso .paper::before {
   background: linear-gradient(
     to left,
     rgb(58 38 12 / 0.34),
@@ -567,6 +771,12 @@
   }
 }
 
+/* On the desk the reader is still coming down the shelving at 1250ms, so
+   the one instruction there waits for the volume to be set down first. */
+.stage-bound .hint {
+  animation-delay: calc(var(--approach) + 400ms);
+}
+
 /* ─── the Fell types carry every heading and initial ──────────────── */
 h1,
 h2,
@@ -588,7 +798,10 @@ h4,
   bottom: 0;
   left: 50%;
   width: 3.4%;
-  transform: translateX(-50%) translateZ(7px);
+  /* Clear of the top leaf, which now stands a good deal further off the
+     block than it used to - the gutter shadow has to fall on the paper,
+     not get sorted behind it. */
+  transform: translateX(-50%) translateZ(14px);
   z-index: 30;
   pointer-events: none;
   background: linear-gradient(
@@ -1085,4 +1298,554 @@ h4,
 .stage:focus,
 .stage:focus-visible {
   outline: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════════ *
+ *  THE APPROACH
+ *  Where the volume comes from. A wall of shelving taken at speed, one
+ *  book drawn off it and turned to face the reader - and by the time it
+ *  is turned it stands at exactly the size and place the desk's own
+ *  volume stands, so the two are swapped without a seam.
+ * ═══════════════════════════════════════════════════════════════════ */
+
+.prologue {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  overflow: hidden;
+  opacity: 1;
+  transition: opacity var(--dissolve) linear;
+
+  /* The volume, at the size the desk will take it back at. */
+  --tome-w: calc(var(--volume-w) / 2);
+  --tome-h: var(--volume-h);
+  /* How thick it is. Only ever seen end-on, but it is what makes the
+     thing a book on a shelf rather than a card standing on edge. */
+  --tome-d: calc(var(--case-w) * 0.052);
+  /* And how small it is while it is still one spine among many. */
+  --tome-scale: 0.2;
+
+  /* How far right it has to sit to actually be in its gap.
+
+     The volume turns about the middle of its front board, but what stands
+     in the gap is its spine - and the spine is hinged on the board's left
+     edge. Turned edge-on, the board collapses to nothing and the spine is
+     all that is left, hanging off to the left of the very point being
+     turned about. So the whole silhouette ends up half a spine's width
+     left of where the volume is nominally placed: on top of its left-hand
+     neighbour, with its own gap sitting empty beside it.
+
+     A book at rotation t and scale s has its silhouette centred on
+     -(d · s · sin t) / 2, so that is what has to be given back. It falls
+     to nothing on its own as the volume turns to face the reader, which
+     is exactly right: by then there is no spine left to allow for. */
+  --seat: calc(var(--tome-d) * var(--tome-scale) / 2);
+  /* The shelf it is found on stands a little below the eye. */
+  --slot-y: 8svh;
+
+  --shelf-h: calc(var(--volume-h) * 0.3);
+  --plank: calc(var(--volume-h) * 0.022);
+  /* Far wider than any window, because the eye travels across the case as
+     well as down it - and never narrower than the window itself, or the
+     room would show past its edges. */
+  --case-w: max(calc(var(--volume-h) * 4), 116vw);
+  /* Which means the case is not always the same width in volumes, so the
+     volumes are cut from the case rather than the other way round: a shelf
+     then comes to a fixed thirteen per cent over its case at every window
+     size, and is clipped. A shelf is never seen half empty. */
+  --spine-w: calc(var(--case-w) / var(--per-row));
+
+  /* How far the eye starts from where it ends up: hard left, and two
+     shelves short of the top of the case. Both are spent over the glide
+     and are back at nothing by the time the volume is reached. */
+  --pan-x: max(0px, calc((var(--case-w) - 100vw) / 2));
+  --pan-y: calc(var(--shelf-h) * (var(--home) - 1));
+
+  /* Shelving standing below the one the volume is on, which is what the
+     eye carries on past and must not run out of. */
+  --below: calc(var(--shelf-h) * (var(--rows) - 1 - var(--home)));
+
+  /* And how far it carries on past. Measured against the window, not
+     against the pan: what has to read the same on every screen is where
+     the volume ends up sitting in the frame once it has been gone by -
+     up in the corner, plainly missed. The case is only ever as wide as
+     it is, so the sideways part of that is capped at what is left of it. */
+  --pass-x: min(17vw, var(--pan-x));
+  /* Downwards it is whichever is less: the pass we want, or the last of the
+     shelving below. Going one pixel further would hang the foot of the case
+     in mid-air at the very moment the reader is looking hardest at it. */
+  --pass-y: clamp(
+    0px,
+    calc(var(--below) + var(--volume-h) * 0.122 - 42svh),
+    24svh
+  );
+}
+
+/* Once the volume is down, the library is of no further interest. */
+.prologue.is-done {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* The room the shelving stands in: colder and deeper than the desk, and
+   gone by the time the book is turned - which is the whole of the change
+   of scene. What is underneath it is the desk, already lit. */
+.prologue::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background:
+    radial-gradient(
+      ellipse 66% 48% at 50% 40%,
+      rgb(255 226 168 / 0.1),
+      transparent 72%
+    ),
+    radial-gradient(ellipse 130% 110% at 50% 46%, #16120e 22%, #060403 100%);
+  animation: room-out var(--approach) linear both;
+}
+
+/* Lamplight reaches a few shelves and no further. */
+.prologue::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 76% 60% at 50% 46%,
+    transparent 26%,
+    rgb(6 4 3 / 0.88) 100%
+  );
+  animation: room-out var(--approach) linear both;
+}
+
+@keyframes room-out {
+  0%,
+  79% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* ─── the fall ────────────────────────────────────────────────────── */
+
+/* Everything the eye travels over, on one layer.
+
+   The case and the volume standing in it were driven by the same animation
+   on two layers, which is exactly as true and not at all as steady: each
+   composited layer rounds its own transform to whole device pixels, so the
+   two can land a fraction of a pixel apart, differently from frame to
+   frame. Across a shelved spine thirty pixels wide that reads as the book
+   shuffling about in its gap while the eye comes down to it. Moved once,
+   here, they cannot come apart - and it is one animation instead of two.
+
+   It also puts the volume under the same failing lamplight as the shelf it
+   is standing on, which is the other half of looking like it belongs. */
+.glide {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  will-change: transform;
+  animation: glide var(--approach) linear both;
+}
+
+/* The case is hung from its foot and centred on its middle, so the shelf
+   the eye comes to rest on is the one the volume is standing on: its plank
+   sits exactly half the shelved book's height below where that book's
+   middle has to end up, and the empty slot in it is dead centre. Nothing
+   here is measured at runtime - the arithmetic is the anchoring. */
+.shelf-wall {
+  position: absolute;
+  z-index: 1;
+  left: 50%;
+  width: var(--case-w);
+  margin-left: calc(var(--case-w) / -2);
+  bottom: calc(
+    42svh - var(--tome-h) * var(--tome-scale) / 2 - var(--plank) - var(--below)
+  );
+  will-change: opacity;
+  animation: shelves-out var(--approach) linear both;
+}
+
+/* The base the case stands on and the cornice over it, both running off the
+   room. Without them the shelving floats at one end or the other, which no
+   piece of furniture does - and the cornice is also what a window tall
+   enough to out-reach the fall sees instead of an empty ceiling. */
+.shelf-wall::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  height: 100svh;
+  background: linear-gradient(to bottom, #241608 0%, #120a04 34%, #060403 100%);
+}
+.shelf-wall::before {
+  content: "";
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  right: 0;
+  height: 100svh;
+  background: linear-gradient(to top, #241608 0%, #120a04 40%, #060403 100%);
+}
+
+/* How the eye crosses the case. Both the shelving and the volume riding
+   on it are driven by this one animation, so they cannot come apart.
+
+   It is a reading, not a search: it sets off unhurried from the top left
+   and drifts down and across, goes straight past the volume it wanted,
+   stops - and comes back for it. The whole point of the sequence is the
+   two hundred milliseconds in the middle where nothing moves at all. */
+@keyframes glide {
+  /* Top of the case, hard left. */
+  0% {
+    transform: translate3d(var(--pan-x), var(--pan-y), 0);
+    animation-timing-function: cubic-bezier(0.34, 0.04, 0.5, 0.98);
+  }
+  /* Down and across at an even pace, and well past it. */
+  44% {
+    transform: translate3d(
+      calc(var(--pass-x) * -1),
+      calc(var(--pass-y) * -1),
+      0
+    );
+    animation-timing-function: linear;
+  }
+  /* ...hold on. */
+  49% {
+    transform: translate3d(
+      calc(var(--pass-x) * -1),
+      calc(var(--pass-y) * -1),
+      0
+    );
+    animation-timing-function: cubic-bezier(0.4, 0.86, 0.36, 1);
+  }
+  /* Back for it, quickly, and a little too far. */
+  60% {
+    transform: translate3d(2.5vw, 2svh, 0);
+    animation-timing-function: cubic-bezier(0.3, 0, 0.22, 1);
+  }
+  /* Square on it, and still while it is taken. */
+  67%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes shelves-out {
+  0%,
+  76% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.shelf {
+  height: var(--shelf-h);
+  display: flex;
+  flex-direction: column;
+}
+
+.shelf-row {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/* The shelf the fall stops at. Three columns with the outer two matched,
+   which puts the empty middle one dead centre - the one place on the whole
+   wall whose position can be stated rather than measured, and therefore the
+   only place the volume that is about to come forward can have stood. */
+.shelf-row.is-home {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: end;
+}
+.shelf-row.is-home .side {
+  display: flex;
+  align-items: flex-end;
+  min-width: 0;
+  overflow: hidden;
+}
+.shelf-row.is-home .side:first-child {
+  justify-content: flex-end;
+}
+.shelf-row.is-home .side:last-child {
+  justify-content: flex-start;
+}
+.shelf-row.is-home .slot {
+  width: calc(var(--tome-d) * var(--tome-scale) + 2px);
+}
+
+.plank {
+  flex: none;
+  height: var(--plank);
+  background: linear-gradient(
+    to bottom,
+    #3a2716 0%,
+    #241608 52%,
+    #140b04 100%
+  );
+  box-shadow: 0 0.35rem 0.8rem rgb(0 0 0 / 0.6);
+}
+
+/* One volume, seen end-on. Its measures are in thousandths of a page
+   height, so the library is built out of the same book it is holding. */
+.spine {
+  position: relative;
+  flex: none;
+  width: calc(var(--spine-w) * var(--w) / 42);
+  height: calc(var(--volume-h) * var(--h) / 1000);
+  border-radius: 2px 2px 0 0;
+  background-color: var(--k);
+  background-image: linear-gradient(
+    to right,
+    rgb(0 0 0 / 0.58),
+    rgb(255 214 168 / 0.07) 36%,
+    rgb(255 214 168 / 0.03) 64%,
+    rgb(0 0 0 / 0.6)
+  );
+  box-shadow: inset 0 0.7rem 1rem rgb(0 0 0 / 0.42);
+  transform-origin: bottom left;
+  transform: rotate(calc(var(--t, 0) * 1deg));
+}
+
+/* Two gilt bands, struck where the binder happened to strike them. */
+.spine::before,
+.spine::after {
+  content: "";
+  position: absolute;
+  left: 17%;
+  right: 17%;
+  height: 1px;
+  background: var(--gilt);
+  opacity: 0.32;
+}
+.spine::before {
+  top: calc(var(--a) * 1%);
+}
+.spine::after {
+  top: calc(var(--b) * 1%);
+}
+
+/* ─── the volume itself ───────────────────────────────────────────── */
+
+/* Carries the same fall as the wall, so the book rides down on the shelf
+   it is standing on and only leaves it once the fall has stopped. */
+.tome-track {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  /* The perspective belongs to the volume, not to the room. Fixed to the
+     room, a book standing a quarter of the way across the screen is being
+     looked at from fourteen degrees off to one side - and so shows a slab
+     of its front board while it is still meant to be one spine among many.
+     Carried here, on the layer that travels with it, the volume is looked
+     at square on wherever the eye has wandered to, and an edge-on board is
+     edge-on. The origin is put where the volume actually stands: half a
+     screen down, plus the drop onto its shelf. */
+  perspective: 1900px;
+  perspective-origin: 50% calc(50% + var(--slot-y));
+}
+
+.tome {
+  position: relative;
+  width: var(--tome-w);
+  height: var(--tome-h);
+  transform-style: preserve-3d;
+  will-change: transform;
+  animation: take var(--approach) linear both;
+}
+
+/* Skipped, or simply arrived: pinned where it was always going to end up,
+   which is where the desk's own volume already is. */
+.prologue.is-done .tome {
+  animation: none;
+  transform: none;
+}
+
+/* `scale` is two-dimensional: it takes x and y and leaves z alone. A book's
+   thickness is nothing but z, so a shelved volume scaled with `scale` keeps
+   its full thickness while its board shrinks to a fifth - and stands on the
+   shelf five times too fat for the gap it came out of. `scaleZ` alongside it
+   is the whole fix, and every step below has to carry it. */
+@keyframes take {
+  /* Shelved. Spine out, and no bigger than its neighbours. */
+  0%,
+  67% {
+    transform: translate(var(--seat), var(--slot-y)) translateZ(0)
+      rotateY(89.5deg) scale(var(--tome-scale)) scaleZ(var(--tome-scale));
+    animation-timing-function: cubic-bezier(0.5, 0, 0.5, 1);
+  }
+  /* Tipped off the shelf by the head, the way a book is actually taken. */
+  71% {
+    transform: translate(var(--seat), calc(var(--slot-y) - 1.4svh))
+      translateZ(46px) rotateY(89.5deg) scale(var(--tome-scale))
+      scaleZ(var(--tome-scale));
+    animation-timing-function: cubic-bezier(0.3, 0.02, 0.2, 1);
+  }
+  /* Drawn out, and beginning to come round. */
+  78% {
+    transform: translate(calc(var(--seat) * 1.375), calc(var(--slot-y) * 0.78))
+      translateZ(250px) rotateY(79deg) scale(calc(var(--tome-scale) * 1.4))
+      scaleZ(calc(var(--tome-scale) * 1.4));
+    animation-timing-function: cubic-bezier(0.22, 0.64, 0.14, 1);
+  }
+  /* Turned to the reader and set down on the desk. */
+  100% {
+    transform: translate(0, 0) translateZ(0) rotateY(0deg) scale(1) scaleZ(1);
+  }
+}
+
+.tome-face,
+.tome-spine {
+  position: absolute;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* The front board is the plane the whole approach is built around: it sits
+   at z = 0 and the volume's thickness runs backwards from it. Anything with
+   depth is magnified by the perspective, and the board is the one surface
+   that has to come out of this the exact size the desk expects - at z = 0
+   the projection is the identity, whatever the perspective happens to be. */
+.tome-face {
+  inset: 0;
+}
+
+/* And the spine, hinged on the board's own left edge and swung back until
+   it stands square to it. Written at full size and only ever seen scaled,
+   so the stamping holds together the whole way in. */
+.tome-spine {
+  top: 0;
+  left: 0;
+  width: var(--tome-d);
+  height: 100%;
+  transform-origin: left center;
+  transform: translateZ(calc(var(--tome-d) * -1)) rotateY(-90deg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  background-color: var(--board);
+  background-image: linear-gradient(
+    to right,
+    rgb(0 0 0 / 0.62),
+    rgb(255 216 168 / 0.06) 42%,
+    rgb(0 0 0 / 0.66)
+  );
+  box-shadow: inset 0 0 1.6rem rgb(0 0 0 / 0.45);
+}
+.tome-spine span {
+  writing-mode: vertical-rl;
+  font-family: var(--font-display);
+  font-size: calc(var(--tome-d) * 0.33);
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  color: var(--gilt);
+  text-shadow: 0 1px 0 rgb(0 0 0 / 0.6);
+  opacity: 0.9;
+}
+.tome-spine::before,
+.tome-spine::after {
+  content: "";
+  position: absolute;
+  left: 14%;
+  right: 14%;
+  height: 1px;
+  background: var(--gilt);
+  opacity: 0.5;
+}
+.tome-spine::before {
+  top: 10%;
+}
+.tome-spine::after {
+  bottom: 10%;
+}
+
+/* The shut volume on the desk carries a shadow and a gutter, and the two
+   are swapped while both are on screen - so this one carries them too. */
+.tome::before {
+  content: "";
+  position: absolute;
+  top: 2%;
+  bottom: -1%;
+  left: 0;
+  right: 0;
+  border-radius: 5px;
+  background: rgb(0 0 0 / 0.42);
+  filter: blur(1.5rem);
+  transform: translateZ(-6px);
+}
+
+.tome-binding {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 6.8%;
+  pointer-events: none;
+  transform: translateX(-50%) translateZ(4px);
+  background: linear-gradient(
+    to right,
+    rgb(24 12 4 / 0) 0%,
+    rgb(28 14 5 / 0.42) 26%,
+    rgb(10 5 2 / 0.72) 50%,
+    rgb(28 14 5 / 0.42) 74%,
+    rgb(24 12 4 / 0) 100%
+  );
+}
+
+/* ─── the handover ────────────────────────────────────────────────── */
+
+/* A reading with a library still in front of it is not yet on the desk.
+   Said with a plain sibling selector and a delayed animation rather than
+   with state, so the volume arrives on time even if no script ever runs -
+   and so it is laid out, and its type fitted, the whole time it waits. */
+.prologue ~ .stage-bound {
+  pointer-events: none;
+  animation: stage-in 1ms linear var(--approach) both;
+}
+.prologue.is-done ~ .stage-bound {
+  animation: none;
+  opacity: 1;
+}
+
+@keyframes stage-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* In the hand there is no volume to fetch: the roll is simply unrolled. */
+@media (max-width: 899px) {
+  .prologue {
+    display: none;
+  }
+}
+
+/* And a reader who has asked for less movement is not made to walk it. */
+@media (prefers-reduced-motion: reduce) {
+  .prologue {
+    display: none;
+  }
+  .prologue ~ .stage-bound {
+    pointer-events: auto;
+    animation: none;
+    opacity: 1;
+  }
 }
