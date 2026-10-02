@@ -250,14 +250,15 @@
   initial-value: 0;
 }
 
-/* Whether the sheet is lying flat: 1 shut or turned and down, 0 the
-   instant it lifts off the pile. A step, not a ramp - a thousandfold of
-   the bow, so it has changed over before a leaf has risen a thousandth of
-   a turn. Registered, so it is a number the stylesheet can switch on. */
-@property --flat {
+/* How far off the pile the sheet is standing: 0 lying flat, either shut
+   or turned and down, and 1 half way over. The bow itself, read as a
+   plain number so that the two drawings of a leaf can be switched on it.
+   Registered, so it is worked out once per leaf and inherited as a number
+   rather than read again as an expression everywhere below. */
+@property --lift {
   syntax: "<number>";
   inherits: true;
-  initial-value: 1;
+  initial-value: 0;
 }
 
 .leaf {
@@ -282,7 +283,7 @@
      The thousandfold is what turns a ramp into a step; the step is at a
      half, and half way through a turn a leaf is a line. */
   --flip: clamp(0, (var(--turn) - 0.5) * 1000, 1);
-  --flat: clamp(0, 1 - sin(var(--turn) * 180deg) * 1000, 1);
+  --lift: sin(var(--turn) * 180deg);
   --depth: calc(var(--front) * (1 - var(--flip)) + var(--back) * var(--flip));
   z-index: calc(var(--depth));
 
@@ -344,26 +345,16 @@
 
      But a sheet lying flat has no bow to show, so there is nothing the run
      is for at rest. Flat, the single whole sheet below is shown instead -
-     one surface, no seams, and a quarter of the painting.
+     one surface, no seams, and a fifth of the painting: a leaf at rest
+     draws one page where it drew eight slices of two.
 
-     Never quite to nothing, though. A surface at nothing is not painted at
-     all, and one that was not painted has to be made before it can be
-     shown - and a page is a costly thing to make, being laid paper, two
-     textures over it and sometimes a plate. So a sheet brought up from
-     nothing arrives a beat late, and for that beat the reader sees
-     straight through the leaf to the one lying under it: the page before,
-     flashing up just as the turn lands. A two-hundred-and-fiftieth of a
-     sheet is still a sheet to the compositor and nothing at all to a
-     reader, so both are held at that and both are always made. The swap
-     is then only ever a swap.
-
-     And the fading is done on the faces, never here. Opacity is a
+     And the switching is done on the faces, never here. Opacity is a
      grouping property: short of 1 it forces this element's preserve-3d to
      flat, so putting it here would collapse the leaf's whole 3-D context
      at the end of every turn and build it again at the start of the next.
      The panels carry no paint of their own anyway - the two faces hung on
-     each one are the whole of what is drawn - so fading those fades the
-     run, and the hinges are left alone. See .pane. */
+     each one are the whole of what is drawn - so switching those switches
+     the run, and the hinges are left alone. See .pane. */
 }
 
 /* And every other panel hangs off the end of the one before it. */
@@ -396,21 +387,17 @@
   overflow: hidden;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
-  /* Up while the leaf is off the pile, and all but gone once it lands.
-     Nothing here is preserve-3d, so the grouping this brings on costs
-     nothing - see .panel-root for why that matters.
+  /* Up the moment the leaf lifts, and gone the moment it is down again -
+     and gone to nothing, not to nearly nothing. A surface at nothing is
+     not painted and never reaches the compositor; a surface at a
+     two-hundred-and-fiftieth is a surface, and nine leaves carry
+     seventy-two of these. Seventy-two sheets of no consequence, blended
+     over one another every frame of a reading that is not even moving,
+     is most of a frame budget spent on nothing anyone can see.
 
-     Held at full until the sheet below has come all the way up, and not a
-     frame sooner: the two overlap rather than cross. A cross-fade between
-     two drawings of the same page is not a cross-fade at all, it is a hole
-     - two surfaces at half each leave a quarter of the leaf see-through,
-     and what shows through is the leaf lying under it. That is the page
-     you just turned, flashing up for a frame or two as this one lands.
-     Overlapping, there is no instant at which the leaf is anything but
-     solid: either the run is up, or the sheet is, or for a frame in the
-     middle both are - and the sheet, coming last in the leaf, is simply
-     the one on top. */
-  opacity: max(0.004, clamp(0, (1 - var(--flat)) * 1000, 1));
+     Nothing here is preserve-3d, so the grouping opacity brings on costs
+     nothing - see .panel-root for why that matters. */
+  opacity: clamp(0, var(--lift) * 1000, 1);
 }
 .pane.recto {
   transform: rotateY(0deg) translateZ(0.01px);
@@ -452,7 +439,7 @@
   --step: initial;
 }
 .pane-in {
-  --flat: initial;
+  --lift: initial;
 }
 
 /* What the fitter settled on for this face, measured once on the flat
@@ -513,7 +500,25 @@
 .reach {
   position: absolute;
   inset: 0;
-  opacity: max(0.004, clamp(0, var(--flat) * 1000, 1));
+  /* Up well before the run is down, and down well after it is up: the
+     two overlap rather than cross.
+
+     A cross-fade between two drawings of one page is not a cross-fade at
+     all, it is a hole - two surfaces at half each leave a quarter of the
+     leaf see-through, and what shows through is the leaf lying under it.
+     That is the page you just turned, flashing up as this one lands.
+     Overlapping, there is no instant at which the leaf is anything but
+     solid, because this stands at full across the whole of the span in
+     which the run is not - and coming last in the leaf, it is the one on
+     top.
+
+     The span is wide on purpose. A page is costly to make, being laid
+     paper with two textures over it and sometimes a plate, and a sheet
+     that was not painted cannot be shown the frame it is asked for.
+     Brought up a twentieth of a bow out - three degrees of leaf, which is
+     no bow to look at - it has the whole tail of the turn, where the
+     easing runs slowest, to be ready in. */
+  opacity: clamp(0, (0.06 - var(--lift)) * 1000, 1);
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
 }
@@ -521,7 +526,7 @@
 /* Which is as far as the angle of the sheet goes. Everything printed on
    the page below has no use for it - see the reset above. */
 .reach > * {
-  --flat: initial;
+  --lift: initial;
 }
 .reach.recto {
   transform: rotateY(0deg) translateZ(0.01px);
