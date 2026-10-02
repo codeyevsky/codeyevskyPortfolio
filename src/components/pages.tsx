@@ -13,6 +13,7 @@ import {
   ventures,
   works,
 } from "@/content/site";
+import type { Work } from "@/content/site";
 
 export type PageDef = {
   id: string;
@@ -182,7 +183,8 @@ function ContentsEntry({
 }: {
   index: number;
   rule: number;
-  go: (pageIndex: number) => void;
+  /** Takes the chapter's id and finds the leaf it opens on. */
+  go: (id: string) => void;
 }) {
   const chapter = chapters[index];
   return (
@@ -196,7 +198,7 @@ function ContentsEntry({
     >
       <button
         type="button"
-        onClick={() => go(chapter.page)}
+        onClick={() => go(chapter.id)}
         className={hr(rule)}
         style={{
           display: "flex",
@@ -249,10 +251,139 @@ function ContentsEntry({
   );
 }
 
+/* ─── the works ───────────────────────────────────────────────────── */
+
+/** As many works as will sit on one leaf without the fitter having to
+    shrink the type to get them there. */
+const WORKS_PER_PAGE = 4;
+
+/**
+ * The works dealt over as few leaves as will hold them, and evenly: ten
+ * over three pages is three, four and three, not four, four and two. A
+ * page that is a quarter full next to one that is overfull looks like a
+ * mistake, because in a printed book it would be one.
+ */
+function worksSheets(): Work[][] {
+  if (works.length === 0) return [[]];
+  const sheets = Math.ceil(works.length / WORKS_PER_PAGE);
+  const out: Work[][] = [];
+  let cut = 0;
+  for (let i = 0; i < sheets; i += 1) {
+    const to = Math.round((works.length * (i + 1)) / sheets);
+    out.push(works.slice(cut, to));
+    cut = to;
+  }
+  return out;
+}
+
+/** One leaf of the works, headed as a continuation if it is not the first. */
+function WorksSheet({
+  entries,
+  folio,
+  first,
+  rule,
+}: {
+  entries: Work[];
+  folio: number;
+  first: boolean;
+  /** Where in the cycle of twelve drawn rules this page picks up. */
+  rule: number;
+}) {
+  return (
+    <Sheet head="The Ventures" folio={folio}>
+      <div className="ornament" style={{ marginBottom: "3.4cqh" }}>
+        <span className="smallcaps">{first ? "Works" : "Works, continued"}</span>
+      </div>
+
+      {entries.length === 0 ? (
+        <p style={{ fontStyle: "italic", color: "var(--ink-soft)" }}>
+          This section is still at the compositor.
+        </p>
+      ) : (
+        <ol style={{ listStyle: "none", margin: 0, padding: 0 }}>
+          {entries.map((work, i) => (
+            <li
+              key={work.title}
+              className={hr(rule + i)}
+              style={{ marginBottom: "3cqh" }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "baseline",
+                  gap: "0.8em",
+                }}
+              >
+                <h3 style={{ flex: 1, lineHeight: 1.2 }}>
+                  {work.href ? (
+                    <a
+                      href={work.href}
+                      draggable={false}
+                      target="_blank"
+                      rel="noreferrer noopener"
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "0.42em",
+                        color: "inherit",
+                        textDecoration: "none",
+                      }}
+                    >
+                      <GithubMark />
+                      <span>
+                        {work.owner && (
+                          <span style={{ color: "var(--ink-soft)" }}>
+                            {work.owner}/
+                          </span>
+                        )}
+                        {work.title}
+                      </span>
+                    </a>
+                  ) : (
+                    work.title
+                  )}
+                </h3>
+                <span className="smallcaps">{work.year}</span>
+              </div>
+
+              <p style={{ margin: "1cqh 0", color: "var(--ink-soft)" }}>
+                {work.summary}
+              </p>
+
+              <p
+                className="smallcaps"
+                style={{ marginBottom: "2.4cqh", opacity: 0.8 }}
+              >
+                {work.tags.join(" · ")}
+              </p>
+            </li>
+          ))}
+        </ol>
+      )}
+    </Sheet>
+  );
+}
+
 /* ─── the leaves, in the order they are bound ─────────────────────── */
 
 export function buildPages(go: (pageIndex: number) => void): PageDef[] {
-  return [
+  /* The works decide how many leaves Chapter II runs to, and everything
+     bound after them is numbered off that - so a repository added to the
+     manuscript cannot leave a folio in the middle of the book wrong. */
+  const sheets = worksSheets();
+  const worksFolio = 4;
+  const after = worksFolio + sheets.length;
+
+  /* The contents is told which chapter it is pointing at, not which leaf:
+     the leaf is looked up here, in the order the pages were actually
+     bound. Nothing is counted twice, so nothing can be counted wrongly.
+     Called on a click, long after the gathering below has been made. */
+  const goTo = (id: string) => {
+    const at = pages.findIndex((page) => page.id === id);
+    if (at >= 0) go(at);
+  };
+
+  const pages: PageDef[] = [
     /* 0 - the front board */
     {
       id: "cover",
@@ -498,8 +629,8 @@ export function buildPages(go: (pageIndex: number) => void): PageDef[] {
           folio="iv"
           bodyStyle={{ display: "flex", flexDirection: "column", gap: "3cqh" }}
         >
-          <ContentsEntry index={0} rule={0} go={go} />
-          <ContentsEntry index={1} rule={4} go={go} />
+          <ContentsEntry index={0} rule={0} go={goTo} />
+          <ContentsEntry index={1} rule={4} go={goTo} />
         </Sheet>
       ),
     },
@@ -514,8 +645,8 @@ export function buildPages(go: (pageIndex: number) => void): PageDef[] {
           folio="v"
           bodyStyle={{ display: "flex", flexDirection: "column", gap: "3cqh" }}
         >
-          <ContentsEntry index={2} rule={7} go={go} />
-          <ContentsEntry index={3} rule={10} go={go} />
+          <ContentsEntry index={2} rule={7} go={goTo} />
+          <ContentsEntry index={3} rule={10} go={goTo} />
         </Sheet>
       ),
     },
@@ -561,84 +692,29 @@ export function buildPages(go: (pageIndex: number) => void): PageDef[] {
       ),
     },
 
-    /* 10 - Chapter II: the works, facing them */
-    {
-      id: "works",
-      label: "Chapter II · Works",
+    /* 10.. - Chapter II: the works, facing them and running on */
+    ...sheets.map((entries, i) => ({
+      id: i === 0 ? "works" : `works-${i + 1}`,
+      label:
+        i === 0 ? "Chapter II · Works" : "Chapter II · Works, continued",
       node: (
-        <Sheet head="The Ventures" folio={4}>
-          <div className="ornament" style={{ marginBottom: "3.4cqh" }}>
-            <span className="smallcaps">Works</span>
-          </div>
-
-          {works.length === 0 ? (
-            <p style={{ fontStyle: "italic", color: "var(--ink-soft)" }}>
-              This section is still at the compositor.
-            </p>
-          ) : (
-            <ol style={{ listStyle: "none", margin: 0, padding: 0 }}>
-              {works.map((work, i) => (
-                <li
-                  key={work.title}
-                  className={hr(i + 2)}
-                  style={{ marginBottom: "3cqh" }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "baseline",
-                      gap: "0.8em",
-                    }}
-                  >
-                    <h3 style={{ flex: 1, lineHeight: 1.2 }}>
-                      {work.href ? (
-                        <a
-                          href={work.href}
-                          draggable={false}
-                          target="_blank"
-                          rel="noreferrer noopener"
-                          style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: "0.42em",
-                            color: "inherit",
-                            textDecoration: "none",
-                          }}
-                        >
-                          <GithubMark />
-                          {work.title}
-                        </a>
-                      ) : (
-                        work.title
-                      )}
-                    </h3>
-                    <span className="smallcaps">{work.year}</span>
-                  </div>
-
-                  <p style={{ margin: "1cqh 0", color: "var(--ink-soft)" }}>
-                    {work.summary}
-                  </p>
-
-                  <p
-                    className="smallcaps"
-                    style={{ marginBottom: "2.4cqh", opacity: 0.8 }}
-                  >
-                    {work.tags.join(" · ")}
-                  </p>
-                </li>
-              ))}
-            </ol>
-          )}
-        </Sheet>
+        <WorksSheet
+          entries={entries}
+          folio={worksFolio + i}
+          first={i === 0}
+          /* Every page picks up the cycle of rules where the last left
+             off, so no two works are underlined the same way. */
+          rule={2 + sheets.slice(0, i).reduce((n, s) => n + s.length, 0)}
+        />
       ),
-    },
+    })),
 
     /* 11 - Chapter III */
     {
       id: "apparatus",
       label: "Chapter III · The Apparatus",
       node: (
-        <Sheet head="The Apparatus" folio={5}>
+        <Sheet head="The Apparatus" folio={after}>
           <ChapterOpening index={2} />
           <dl style={{ margin: 0 }}>
             {apparatus.map((group, i) => (
@@ -668,7 +744,7 @@ export function buildPages(go: (pageIndex: number) => void): PageDef[] {
           src="/mosaic.webp"
           alt="A mosaic of a kneeling figure before the marks of several programming languages"
           ratio="1085 / 1449"
-          folio={6}
+          folio={after + 1}
           framed={false}
         />
       ),
@@ -679,7 +755,7 @@ export function buildPages(go: (pageIndex: number) => void): PageDef[] {
       id: "correspondence",
       label: "Chapter IV · Correspondence",
       node: (
-        <Sheet head="Correspondence" folio={7}>
+        <Sheet head="Correspondence" folio={after + 2}>
           <ChapterOpening index={3} />
           <p className="dropcap">{correspondence.opening}</p>
 
@@ -768,6 +844,20 @@ export function buildPages(go: (pageIndex: number) => void): PageDef[] {
       ),
     },
   ];
+
+  /* A leaf has two sides, and a gathering that comes out odd leaves the
+     back board with a blank facing it where the reader expects cloth. So
+     the gathering is made up: one leaf's worth of plain paper, tipped in
+     before the boards, exactly as a binder would. */
+  if (pages.length % 2 === 1) {
+    pages.splice(pages.length - 2, 0, {
+      id: "blank",
+      label: "Blank leaf",
+      node: <div className="paper" />,
+    });
+  }
+
+  return pages;
 }
 
 function VentureList() {
