@@ -21,7 +21,7 @@ export const author = {
   handle: "codeyevsky",
   role: "Founder & Engineer",
   location: "Istanbul, Türkiye",
-  email: "c1n4r.yldrm@gmail.com",
+  email: "cinar@solongate.com",
 } as const;
 
 export const site = {
@@ -350,8 +350,8 @@ export const profiles = [
   },
   {
     label: "Instagram",
-    value: "instagram.com/c1n4r.yldrm",
-    href: "https://www.instagram.com/c1n4r.yldrm",
+    value: "instagram.com/codeyevsky",
+    href: "https://www.instagram.com/codeyevsky",
   },
   {
     label: "LinkedIn",
