@@ -250,6 +250,16 @@
   initial-value: 0;
 }
 
+/* Whether the sheet is lying flat: 1 shut or turned and down, 0 the
+   instant it lifts off the pile. A step, not a ramp - a thousandfold of
+   the bow, so it has changed over before a leaf has risen a thousandth of
+   a turn. Registered, so it is a number the stylesheet can switch on. */
+@property --flat {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 1;
+}
+
 .leaf {
   position: absolute;
   top: 0;
@@ -272,6 +282,7 @@
      The thousandfold is what turns a ramp into a step; the step is at a
      half, and half way through a turn a leaf is a line. */
   --flip: clamp(0, (var(--turn) - 0.5) * 1000, 1);
+  --flat: clamp(0, 1 - sin(var(--turn) * 180deg) * 1000, 1);
   --depth: calc(var(--front) * (1 - var(--flip)) + var(--back) * var(--flip));
   z-index: calc(var(--depth));
 
@@ -320,6 +331,39 @@
    run still points where the leaf as a whole is pointing. */
 .panel-root {
   transform: rotateY(calc(var(--step) * -1.5));
+
+  /* And the whole run is only out while the leaf is off the pile.
+
+     Four windows cut on a quarter of a leaf fall on fractions of a pixel,
+     and each is composited on its own - so each rasterises its slice of
+     the page at its own subpixel phase and the device rounds four edges
+     four ways. Three hairlines down a page, and they are there whether or
+     not the windows overlap, because nothing is missing: the same column
+     is simply drawn twice at part coverage. Bleeding the windows into one
+     another does not close it, and no amount of bleed will.
+
+     But a sheet lying flat has no bow to show, so there is nothing the run
+     is for at rest. Flat, the single whole sheet below is shown instead -
+     one surface, no seams, and a quarter of the painting.
+
+     Never quite to nothing, though. A surface at nothing is not painted at
+     all, and one that was not painted has to be made before it can be
+     shown - and a page is a costly thing to make, being laid paper, two
+     textures over it and sometimes a plate. So a sheet brought up from
+     nothing arrives a beat late, and for that beat the reader sees
+     straight through the leaf to the one lying under it: the page before,
+     flashing up just as the turn lands. A two-hundred-and-fiftieth of a
+     sheet is still a sheet to the compositor and nothing at all to a
+     reader, so both are held at that and both are always made. The swap
+     is then only ever a swap.
+
+     And the fading is done on the faces, never here. Opacity is a
+     grouping property: short of 1 it forces this element's preserve-3d to
+     flat, so putting it here would collapse the leaf's whole 3-D context
+     at the end of every turn and build it again at the start of the next.
+     The panels carry no paint of their own anyway - the two faces hung on
+     each one are the whole of what is drawn - so fading those fades the
+     run, and the hinges are left alone. See .pane. */
 }
 
 /* And every other panel hangs off the end of the one before it. */
@@ -330,12 +374,43 @@
 
 /* Both faces carry an explicit 3-D transform. Without one, Gecko will
    not compute a backface at all and the recto shows through mirrored. */
+
+/* And each window is cut a pixel wide of its own panel.
+
+   Bowed, the run is four panels standing at four different angles, hinged
+   end to end: the arithmetic puts their edges together, but a rounding
+   either way at a hinge parts them, and what shows through the crack is
+   the leaf underneath. Cut a pixel past its own edge, a window is
+   overdrawn by the one hinged off it and there is no crack to show
+   through. The slice inside is slid back by the same pixel - see .pane-in
+   - so the window still falls on exactly its own quarter of the page.
+
+   This is for a leaf in flight, and only that. A seam in a sheet lying
+   flat is a different fault with a different cure - see .panel-root. */
 .pane {
   position: absolute;
-  inset: 0;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: -1px;
   overflow: hidden;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
+  /* Up while the leaf is off the pile, and all but gone once it lands.
+     Nothing here is preserve-3d, so the grouping this brings on costs
+     nothing - see .panel-root for why that matters.
+
+     Held at full until the sheet below has come all the way up, and not a
+     frame sooner: the two overlap rather than cross. A cross-fade between
+     two drawings of the same page is not a cross-fade at all, it is a hole
+     - two surfaces at half each leave a quarter of the leaf see-through,
+     and what shows through is the leaf lying under it. That is the page
+     you just turned, flashing up for a frame or two as this one lands.
+     Overlapping, there is no instant at which the leaf is anything but
+     solid: either the run is up, or the sheet is, or for a frame in the
+     middle both are - and the sheet, coming last in the leaf, is simply
+     the one on top. */
+  opacity: max(0.004, clamp(0, (1 - var(--flat)) * 1000, 1));
 }
 .pane.recto {
   transform: rotateY(0deg) translateZ(0.01px);
@@ -351,8 +426,9 @@
   position: absolute;
   top: 0;
   height: 100%;
-  width: 400%;
-  left: calc(var(--slice) * -100%);
+  /* Four windows, less the pixel of bleed each one of them carries. */
+  width: calc(400% - 4px);
+  left: calc(var(--slice) * (-100% + 1px));
 }
 
 /* And every value that moves stops here.
@@ -374,6 +450,9 @@
   --depth: initial;
   --curl: initial;
   --step: initial;
+}
+.pane-in {
+  --flat: initial;
 }
 
 /* What the fitter settled on for this face, measured once on the flat
@@ -424,17 +503,25 @@
   );
 }
 
-/* The page as one flat sheet, and never seen: what is drawn is the run of
-   panels over it. But it is this sheet that is actually reached for. A
-   link cut across four clipped windows is not a link, and a page said four
-   times over to a screen reader is not one page - so the run is inert and
-   this carries the reading. It is also the only copy the fitter measures. */
+/* The page as one flat sheet. A link cut across four clipped windows is
+   not a link, and a page said four times over to a screen reader is not
+   one page - so the run is inert and this is what is reached for, read out
+   and measured. And lying flat, it is also what is seen: the run above
+   fades out the moment the leaf settles and this takes the page over, one
+   surface and no seams. It comes last in the leaf, so at the one instant
+   both are up it is the one on top. */
 .reach {
   position: absolute;
   inset: 0;
-  opacity: 0;
+  opacity: max(0.004, clamp(0, var(--flat) * 1000, 1));
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
+}
+
+/* Which is as far as the angle of the sheet goes. Everything printed on
+   the page below has no use for it - see the reset above. */
+.reach > * {
+  --flat: initial;
 }
 .reach.recto {
   transform: rotateY(0deg) translateZ(0.01px);
