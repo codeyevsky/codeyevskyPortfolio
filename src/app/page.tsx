@@ -163,9 +163,9 @@ export default async function Home() {
               href="https://www.npmjs.com/package/@solongate/proxy"
               className="underline underline-offset-4 transition-opacity hover:opacity-70"
             >
-              npm packages
-            </a>{" "}
-            500k+ downloads.
+              npm packages 500k+ downloads
+            </a>
+            .
           </p>
           <p className="text-lg leading-relaxed text-neutral-200">
             Say hi:{" "}
