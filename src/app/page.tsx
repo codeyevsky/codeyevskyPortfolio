@@ -32,9 +32,6 @@ const repos = [
   "solongate/agent-security",
   "solongate/psirtmap",
   "solongate/solongate-audit",
-  "codeyevsky/yomi",
-  "codeyevsky/ghFlex",
-  "codeyevsky/ritmo",
 ];
 
 type Repo = {
@@ -71,8 +68,36 @@ async function getRepos(): Promise<Repo[]> {
   return results.filter((r): r is Repo => r !== null);
 }
 
+async function getNpmPackage(): Promise<{
+  name: string;
+  description: string;
+  version: string;
+  downloads: number;
+} | null> {
+  try {
+    const [meta, dl] = await Promise.all([
+      fetch("https://registry.npmjs.org/@solongate/proxy/latest", {
+        next: { revalidate: 3600 },
+      }).then((r) => (r.ok ? r.json() : null)),
+      fetch(
+        "https://api.npmjs.org/downloads/point/last-week/@solongate/proxy",
+        { next: { revalidate: 3600 } },
+      ).then((r) => (r.ok ? r.json() : null)),
+    ]);
+    if (!meta) return null;
+    return {
+      name: "@solongate/proxy",
+      description: meta.description ?? "",
+      version: meta.version ?? "",
+      downloads: dl?.downloads ?? 0,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export default async function Home() {
-  const pinned = await getRepos();
+  const [pinned, npmPkg] = await Promise.all([getRepos(), getNpmPackage()]);
   return (
     <main className="flex min-h-screen flex-col">
       {/* about */}
@@ -221,6 +246,31 @@ export default async function Home() {
               </div>
             </a>
           ))}
+          {npmPkg && (
+            <a
+              href="https://www.npmjs.com/package/@solongate/proxy"
+              className="flex flex-col gap-2 border border-neutral-500/30 p-5 transition-colors hover:border-neutral-300"
+            >
+              <div className="text-lg text-neutral-100">{npmPkg.name}</div>
+              <div className="flex-1 text-sm text-neutral-400">
+                {npmPkg.description}
+              </div>
+              <div className="flex items-center gap-5 text-xs text-neutral-400">
+                <span className="flex items-center gap-1.5">
+                  <span className="bg-neutral-100 px-1 text-[10px] font-bold text-neutral-900">
+                    npm
+                  </span>
+                  v{npmPkg.version}
+                </span>
+                <span className="flex items-center gap-1">
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden>
+                    <path d="M7.25 1.75a.75.75 0 0 1 1.5 0v6.69l2.22-2.22a.75.75 0 1 1 1.06 1.06l-3.5 3.5a.75.75 0 0 1-1.06 0l-3.5-3.5a.75.75 0 0 1 1.06-1.06l2.22 2.22V1.75zM2.5 12.25a.75.75 0 0 1 .75.75v.5h9.5v-.5a.75.75 0 0 1 1.5 0v1.25a.75.75 0 0 1-.75.75H2.75a.75.75 0 0 1-.75-.75V13a.75.75 0 0 1 .5-.75z" />
+                  </svg>
+                  {npmPkg.downloads.toLocaleString("en-US")}/week
+                </span>
+              </div>
+            </a>
+          )}
         </div>
         <a
           href="https://github.com/codeyevsky"
