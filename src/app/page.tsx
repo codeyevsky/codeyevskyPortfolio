@@ -99,13 +99,13 @@ async function getNpmPackage(): Promise<{
 export default async function Home() {
   const [pinned, npmPkg] = await Promise.all([getRepos(), getNpmPackage()]);
   return (
-    <main className="flex min-h-screen flex-col">
+    <main className="flex min-h-screen flex-col overflow-x-clip">
       {/* about */}
       <section className="mx-auto grid w-full max-w-5xl items-center gap-12 px-8 py-20 md:grid-cols-2">
         <div className="relative flex justify-center">
           <svg
             viewBox="-30 -20 270 250"
-            className="absolute top-[38%] left-1/2 -z-10 h-[480px] w-[480px] -translate-x-1/2 -translate-y-1/2 opacity-40"
+            className="absolute top-[38%] left-1/2 -z-10 h-[480px] w-[480px] max-w-[95vw] -translate-x-1/2 -translate-y-1/2 opacity-40"
             aria-hidden
           >
             <path
