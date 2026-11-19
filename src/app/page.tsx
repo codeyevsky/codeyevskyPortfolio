@@ -128,7 +128,7 @@ export default async function Home() {
           <p className="text-lg leading-relaxed text-neutral-200">
             I&apos;m Çınar &quot;Sycamore&quot; Yıldırım, Co-founder of{" "}
             <a
-              href="https://solongate.org/"
+              href="https://solongate.com/"
               className="underline underline-offset-4 transition-opacity hover:opacity-70"
             >
               SolonGate
