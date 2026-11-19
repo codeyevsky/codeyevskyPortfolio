@@ -101,7 +101,7 @@ export default async function Home() {
   return (
     <main className="flex min-h-screen flex-col overflow-x-clip">
       {/* about */}
-      <section className="mx-auto grid w-full max-w-5xl items-center gap-12 px-8 py-20 md:grid-cols-2">
+      <section className="mx-auto grid w-full max-w-5xl items-center gap-12 px-8 py-8 md:py-20 md:grid-cols-2">
         <div className="relative flex justify-center">
           <svg
             viewBox="-30 -20 270 250"
@@ -181,7 +181,7 @@ export default async function Home() {
 
 
       {/* ventures */}
-      <section className="mx-auto w-full max-w-5xl px-8 py-20">
+      <section className="mx-auto w-full max-w-5xl px-8 py-8 md:py-20">
         <h2 className="mb-10 inline-block bg-neutral-100 px-3 py-1 text-2xl font-semibold text-neutral-900">
           Experience
         </h2>
@@ -202,7 +202,7 @@ export default async function Home() {
 
 
       {/* works */}
-      <section className="mx-auto w-full max-w-5xl px-8 py-20">
+      <section className="mx-auto w-full max-w-5xl px-8 py-8 md:py-20">
         <h2 className="mb-10 inline-block bg-neutral-100 px-3 py-1 text-2xl font-semibold text-neutral-900">
           Things I&apos;ve built
         </h2>
