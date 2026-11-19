@@ -17,11 +17,6 @@ const ventures = [
     period: "May 2025 – Present",
   },
   {
-    name: "Tactiqgen",
-    role: "Co-Founder & CTO",
-    period: "Nov 2025 – Feb 2026",
-  },
-  {
     name: "Dotweber",
     role: "Full-stack Developer",
     period: "Apr 2025 – Feb 2026",
