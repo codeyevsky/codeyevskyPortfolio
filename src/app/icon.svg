@@ -1,11 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
-  <rect width="32" height="32" rx="4" fill="#14100c" />
-  <text
-    x="16"
-    y="25.5"
-    font-family="Georgia, 'Times New Roman', serif"
-    font-size="28"
-    fill="#e6dabb"
-    text-anchor="middle"
-  >C</text>
+  <rect width="32" height="32" rx="6" fill="#2b2b2b" />
+  <polygon
+    fill="#b5b5b5"
+    points="16,3 18,12 23,5 20.5,12.5 28,9 22,15 29,16 22,17.5 27,23 20.5,19.5 22,28 17.5,20 16,29 14,20 9,27 11.5,19.5 4,23 10,17 3,16 10,14.5 5,9 11.5,12.5 10,4 14.5,12"
+  />
 </svg>
