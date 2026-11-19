@@ -105,7 +105,7 @@ export default async function Home() {
         <div className="relative flex justify-center">
           <svg
             viewBox="-30 -20 270 250"
-            className="absolute top-[38%] left-1/2 -z-10 h-[480px] w-[480px] max-w-[95vw] -translate-x-1/2 -translate-y-1/2 opacity-40"
+            className="absolute top-[28%] left-1/2 -z-10 h-[480px] w-[480px] max-w-[95vw] -translate-x-1/2 -translate-y-1/2 opacity-40 md:top-[38%]"
             aria-hidden
           >
             <path
