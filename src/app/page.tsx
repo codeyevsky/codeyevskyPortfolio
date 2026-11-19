@@ -272,16 +272,16 @@ export default async function Home() {
             </a>
           )}
         </div>
-        <div className="mt-8 flex gap-6">
+        <div className="mt-8 flex flex-col gap-2">
           <a
             href="https://github.com/codeyevsky"
-            className="inline-block text-sm text-neutral-300 underline underline-offset-4 transition-opacity hover:opacity-70"
+            className="inline-block self-start text-sm text-neutral-300 underline underline-offset-4 transition-opacity hover:opacity-70"
           >
             More on GitHub →
           </a>
           <a
             href="https://www.npmjs.com/search?q=solongate"
-            className="inline-block text-sm text-neutral-300 underline underline-offset-4 transition-opacity hover:opacity-70"
+            className="inline-block self-start text-sm text-neutral-300 underline underline-offset-4 transition-opacity hover:opacity-70"
           >
             More on npm →
           </a>
