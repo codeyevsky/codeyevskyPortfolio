@@ -96,8 +96,27 @@ async function getNpmPackage(): Promise<{
   }
 }
 
+async function getCodersRankTopPercent(): Promise<number | null> {
+  try {
+    const res = await fetch(
+      "https://api.codersrank.io/v2/users/codeyevsky?get_by=username",
+      { next: { revalidate: 3600 } },
+    );
+    if (!res.ok) return null;
+    const d = await res.json();
+    if (!d.position || !d.total_users) return null;
+    return Math.max(1, Math.ceil((d.position / d.total_users) * 100));
+  } catch {
+    return null;
+  }
+}
+
 export default async function Home() {
-  const [pinned, npmPkg] = await Promise.all([getRepos(), getNpmPackage()]);
+  const [pinned, npmPkg, topPercent] = await Promise.all([
+    getRepos(),
+    getNpmPackage(),
+    getCodersRankTopPercent(),
+  ]);
   return (
     <main className="flex min-h-screen flex-col overflow-x-clip">
       {/* about */}
@@ -164,6 +183,13 @@ export default async function Home() {
               className="underline underline-offset-4 transition-opacity hover:opacity-70"
             >
               npm packages 500k+ downloads
+            </a>
+            . I&apos;m in the{" "}
+            <a
+              href="https://profile.codersrank.io/user/codeyevsky"
+              className="underline underline-offset-4 transition-opacity hover:opacity-70"
+            >
+              top {topPercent ?? 2}% globally on CodersRank
             </a>
             .
           </p>
